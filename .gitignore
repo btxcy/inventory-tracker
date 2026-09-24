@@ -10,5 +10,3 @@ venv/
 .vscode/
 staticfiles/
 media/
-readme.md
-requirements.txt

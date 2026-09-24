@@ -1,0 +1,24 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en-CA">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Destroy</title>
+</head>
+<body data-csrf="{{ csrf_token }}">
+  <h1>Destroy</h1>
+  
+  <a href="{% url 'dashboard' %}">Back</a><br>
+
+  <label>Product
+    <select id="product-destroy"></select>
+  </label>
+
+  <button type="button" id="destroy">Destroy</button>
+
+  <p id="destroy_confirm"></p>
+
+  <script type="module" src="{% static 'js/destroy.js' %}"></script>
+</body>
+</html>
