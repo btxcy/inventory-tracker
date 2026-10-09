@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.db.models import F
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
@@ -7,6 +8,7 @@ from rest_framework.decorators import action
 from .models import Category, Supplier, Product, StockMovement
 from .serializers import CategorySerializer, SupplierSerializer, ProductSerializer, StockMovementCreateSerializer, StockMovementSerializer
 from .services import record_movement, create_product, StockError
+from .broadcast import broadcast_stock_update
 
 # Create your views here.
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -80,6 +82,10 @@ class StockMovementViewSet(mixins.ListModelMixin,
             movement = record_movement(**serializer.validated_data, user=user)
         except StockError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # websocket
+        transaction.on_commit(lambda: broadcast_stock_update(movement.product))
+
         output = StockMovementSerializer(movement)
         return Response(output.data, status=status.HTTP_201_CREATED)
 
