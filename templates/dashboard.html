@@ -1,0 +1,24 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en-CA">
+<head>
+  <meta charset="utf-8">
+  <title>Inventory</title>
+</head>
+<body>
+  <h1>Inventory</h1>
+  <a href="{% url 'movements' %}" class="movements">Add Movements</a><br>
+  <a href="{% url 'destroy' %}" class="button">Destroy Product</a><br>
+  <a href="{% url 'create-new-product' %}" class="button">Create New Products</a><br>
+  <table>
+    <thead>
+      <tr>
+        <th>SKU</th><th>Name</th><th>Category</th><th>Quantity</th><th>Reorder Level</th>
+      </tr>
+    </thead>
+    <tbody id="product-rows"></tbody>
+  </table>
+
+  <script type="module" src="{% static 'js/dashboard.js' %}"></script>
+</body>
+</html>

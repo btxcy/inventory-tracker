@@ -1,0 +1,46 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en-CA">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Movements</title>
+</head>
+<body>
+  <h1>Movements</h1>
+  <a href="{% url 'dashboard' %}">Back</a>
+
+  <form id="movement-form">
+    {% csrf_token %}
+
+    <label>Product
+      <select name="product" id="product-select"></select>
+    </label><br>
+
+    <label>Type
+      <select name="movement_type">
+        <option value="PURCHASE">Purchase</option>
+        <option value="SALE">Sale</option>
+        <option value="DAMAGE">Damage</option>
+        <option value="RETURN_IN">Customer Return</option>
+        <option value="ADJUSTMENT_IN">Adjustment (In)</option>
+        <option value="ADJUSTMENT_OUT">Adjustment (Out)</option>
+      </select>
+    </label><br>
+
+    <label>Quantity
+      <input type="number" name="quantity" min="1" required>
+    </label><br>
+
+    <label>Reference
+      <input type="text" name="reference">
+    </label><br>
+
+    <button type="submit" class="save">Save</button>
+  </form>
+
+  <p id="message"></p>
+
+  <script type="module" src="{% static 'js/movements.js' %}"></script>
+</body>
+</html>

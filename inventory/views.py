@@ -1,10 +1,14 @@
+from django.db import transaction
 from django.db.models import F
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 from .models import Category, Supplier, Product, StockMovement
 from .serializers import CategorySerializer, SupplierSerializer, ProductSerializer, StockMovementCreateSerializer, StockMovementSerializer
-from .services import record_movement, StockError
+from .services import record_movement, create_product, StockError
+from .broadcast import broadcast_stock_update
 
 # Create your views here.
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -37,6 +41,22 @@ class ProductViewSet(viewsets.ModelViewSet):
         instance.is_active = False
         instance.save(update_fields=["is_active", "updated_at"])
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = None
+        if request.user.is_authenticated:
+            user = request.user
+        try:
+            data = serializer.validated_data
+            quantity = data.pop("opening_quantity", 0)
+            created_product = create_product(**data, quantity=quantity, user=user)
+        except StockError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        output = ProductSerializer(created_product)
+        return Response(output.data, status=status.HTTP_201_CREATED)
+
 # not adding put and delete
 class StockMovementViewSet(mixins.ListModelMixin,
                            mixins.RetrieveModelMixin,
@@ -62,5 +82,26 @@ class StockMovementViewSet(mixins.ListModelMixin,
             movement = record_movement(**serializer.validated_data, user=user)
         except StockError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # websocket
+        transaction.on_commit(lambda: broadcast_stock_update(movement.product))
+
         output = StockMovementSerializer(movement)
         return Response(output.data, status=status.HTTP_201_CREATED)
+
+
+@login_required
+def dashboard(request):
+    return render(request, "dashboard.html")
+
+@login_required
+def movements(request):
+    return render(request, "movements.html")
+
+@login_required
+def destroy_product(request):
+    return render(request, "destroy.html")
+
+@login_required
+def create_new_product(request):
+    return render(request, "new_product.html")

@@ -1,4 +1,6 @@
-from .models import Product, StockMovement, MOVEMENT_DIRECTION
+from math import cos
+
+from .models import MovementType, Product, StockMovement, MOVEMENT_DIRECTION, Supplier, Category
 from django.db import transaction
 from django.db.models import F
 
@@ -22,6 +24,16 @@ class InsufficientStock(StockError):
         self.available = available
         self.quantity = quantity
         super().__init__(f"Insufficient stock for {self.product}: requested {self.quantity}, available {self.available}")
+
+class InvalidProduct(StockError):
+    def __init__(self, product):
+        self.product = product
+        super().__init__(f"Invalid Product {self.product}.")
+
+class AlreadyExist(StockError):
+    def __init__(self, product):
+        self.product = product
+        super().__init__(f"Already exist in Storage {self.product.sku} - {self.product.name}.")
 
 # services 
 
@@ -62,3 +74,43 @@ def record_movement(*, product, movement_type, quantity, user=None,
         product.refresh_from_db()
 
     return movement
+
+def create_product(*, sku, name, description="", category, supplier, unit, cost_price,
+                   sale_price, reorder_level, reorder_quantity, quantity=0, user=None):
+
+    if sku is None or name is None:
+        raise InvalidProduct(name)
+
+    with transaction.atomic():
+
+        product = None
+        # do have check already, but we want to print pretty message
+        exist = Product.objects.filter(sku=sku).first()
+        if exist:
+            raise AlreadyExist(exist)
+        else:
+            product = Product.objects.create(
+                sku = sku,
+                name = name,
+                description = description,
+                category = category,
+                supplier = supplier,
+                unit = unit,
+                cost_price = cost_price,
+                sale_price = sale_price,
+                reorder_level = reorder_level,
+                reorder_quantity = reorder_quantity,
+            )
+
+        if quantity > 0:
+            record_movement(
+                product = product,
+                movement_type = MovementType.PURCHASE,
+                quantity = quantity,
+                unit_cost = cost_price,
+                reference = "Opening Stock",
+                user = user,
+            )
+
+    product.refresh_from_db()
+    return product

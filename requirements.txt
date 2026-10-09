@@ -1,0 +1,4 @@
+Django==4.2.30
+djangorestframework==3.16.1
+django-filter==25.1
+python-dotenv==1.2.1

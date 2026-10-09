@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from inventory.views import SupplierViewSet, CategoryViewSet, ProductViewSet, StockMovementViewSet
+from inventory.views import SupplierViewSet, CategoryViewSet, ProductViewSet, StockMovementViewSet, create_new_product, dashboard, movements, destroy_product
 
 router = DefaultRouter() # check all apis under /api/
 router.register("categories", CategoryViewSet)
@@ -29,4 +29,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path("api/", include(router.urls)),
     path("api-auth/", include("rest_framework.urls")),
+    path("", dashboard, name="dashboard"),
+    path("movements/", movements, name="movements"),
+    path("destroy/", destroy_product, name="destroy"),
+    path("create/", create_new_product, name="create-new-product"),
 ]
