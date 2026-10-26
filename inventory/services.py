@@ -75,32 +75,23 @@ def record_movement(*, product, movement_type, quantity, user=None,
 
     return movement
 
-def create_product(*, sku, name, description="", category, supplier, unit, cost_price,
-                   sale_price, reorder_level, reorder_quantity, quantity=0, user=None):
+def create_product(*, sku, name, category, cost_price, sale_price,
+                   quantity=0, user=None, **fields):
 
-    if sku is None or name is None:
-        raise InvalidProduct(name)
+    exist = Product.objects.filter(sku=sku).first()
+    # do have check already, but we want to print pretty message
+    if exist:
+        raise AlreadyExist(exist)
 
     with transaction.atomic():
-
-        product = None
-        # do have check already, but we want to print pretty message
-        exist = Product.objects.filter(sku=sku).first()
-        if exist:
-            raise AlreadyExist(exist)
-        else:
-            product = Product.objects.create(
-                sku = sku,
-                name = name,
-                description = description,
-                category = category,
-                supplier = supplier,
-                unit = unit,
-                cost_price = cost_price,
-                sale_price = sale_price,
-                reorder_level = reorder_level,
-                reorder_quantity = reorder_quantity,
-            )
+        product = Product.objects.create(
+            sku = sku,
+            name = name,
+            category = category,
+            cost_price = cost_price,
+            sale_price = sale_price,
+            **fields,
+        )
 
         if quantity > 0:
             record_movement(
