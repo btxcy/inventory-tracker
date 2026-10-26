@@ -1,0 +1,71 @@
+{% load static %}
+<!DOCTYPE html>
+
+<html lang="en-CA">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create New Product</title>
+</head>
+
+<body data-csrf={{ csrf_token }}>
+
+    <h1>New Product</h1>
+
+    <a href="{% url 'dashboard' %}">Back</a><br>
+
+    <label>SKU
+        <input type="text" id="sku" required>
+    <label><br>
+
+    <label>Name
+        <input type="text" id="new-product-name" required>
+    <label><br>
+
+    <label>Description
+        <input type="text" id="description" required>
+    <label><br>
+
+    <label>Category
+        <select id="category-select"></select>
+    </label><br>
+
+    <label>Supplier
+        <select id="supplier-select"></select>
+    </label><br>
+
+    <label>Unit
+        <select id="unit">
+            <option value="EACH">Each</option>
+            <option value="KG">Kilogram</option>
+            <option value="LITRE">Litre</option>
+            <option value="BOX">Box</option>
+        </select>
+    </label><br>
+
+    <label>Cost Price
+        <input type="number" step="0.01" id="cost-price" min=0>
+    </label><br>
+
+    <label>Sale Price
+        <input type="number" step="0.01" id="sale-price" min=0>
+    </label><br>
+
+    <label>Quantity
+        <input type="number" id="quantity" min=0>
+    </label><br>
+
+    <label>Reorder Level
+        <input type="number" id="reorder-level" min=0>
+    </label><br>
+
+    <label>Reorder Quantity
+        <input type="number" id="reorder-quantity" min=0>
+    </label><br>
+    
+    <button type="button" class="save-new-product" id="confirm-create-new">Save</button>
+
+    <p id="create-confirm-message"></p>
+    <script type="module" src="{% static 'js/new_product.js' %}"></script>
+</body>

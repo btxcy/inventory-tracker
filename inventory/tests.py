@@ -1,9 +1,12 @@
+from decimal import Decimal
+
 from django.test import TestCase
 from rest_framework.test import APITestCase
 from django.db import IntegrityError, transaction
 from django.contrib.auth import get_user_model
 from .models import Category, Product, StockMovement
-from .services import record_movement, InsufficientStock, InvalidQuantity, InvalidMovementType
+from unittest.mock import patch
+from .services import StockError, create_product, record_movement, InsufficientStock, InvalidQuantity, InvalidMovementType, AlreadyExist
 
 # Create your tests here.
 
@@ -261,3 +264,68 @@ class StockMovementAPITest(APITestCase):
             format="json"
         )
         self.assertEqual(response.status_code, 405)
+
+class CreateProductTests(TestCase):
+    def setUp(self):
+        self.category = Category.objects.create(name="TestCat", slug="testcat")
+
+    def test_minimal_fields_use_model_defaults(self):
+        product = create_product(
+            sku="T-10",
+            name="Test10",
+            category=self.category,
+            cost_price="2000.00",
+            sale_price="2999.00",
+        )
+        self.assertEqual(product.sku, "T-10")
+        self.assertEqual(product.quantity, 0)
+        self.assertEqual(product.unit, "EACH")  
+        self.assertEqual(product.reorder_level, 10)
+        self.assertEqual(product.reorder_quantity, 0)
+        self.assertTrue(product.is_active)
+        self.assertEqual(product.movements.count(), 0)
+        self.assertEqual(product.supplier, None)
+
+    def test_opening_quantity_creates_ledger_row(self):
+        # if quantity > 0 we record in the ledger #96
+        product = create_product(
+            sku="T-11",
+            name="Test11",
+            category=self.category,
+            cost_price="12335.00",
+            sale_price="29923.00",
+            quantity=30,
+        )
+        self.assertEqual(product.sku, "T-11")
+        self.assertEqual(product.quantity, 30)
+        self.assertEqual(product.movements.count(), 1)
+        movement = product.movements.first()
+        self.assertEqual(movement.movement_type, "PURCHASE")
+        self.assertEqual(movement.unit_cost, Decimal("12335.00"))
+
+        ledger = sum(m.signed_quantity for m in product.movements.all())
+        self.assertEqual(product.quantity, ledger)
+
+    def test_duplicate_sku_raises(self):
+        create_product(sku="T-01", name="TEST-5G", category=self.category, 
+                       cost_price=Decimal("10.99"), sale_price=Decimal("15.99"))
+
+        # both T-01
+        with self.assertRaises(AlreadyExist):
+            create_product(sku="T-01", name="TEST-10G", category=self.category,
+                            cost_price=Decimal("17.99"), sale_price=Decimal("19.99"))
+
+    # claude - test if stock movement incorrect then rollback
+    def test_failed_opening_movement_rolls_back_product(self):
+        with patch("inventory.services.record_movement",
+                   side_effect=StockError("roll-back")):
+            with self.assertRaises(StockError):
+                create_product(
+                    sku="T-12",
+                    name="Test12",
+                    category=self.category,
+                    cost_price="10.00",
+                    sale_price="20.00",
+                    quantity=5,
+                )
+        self.assertFalse(Product.objects.filter(sku="T-12").exists())
